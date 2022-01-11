@@ -14,7 +14,7 @@ router.post("/register", async (request, response) => {
     try {
         const savedUser = await newUser.save();
         
-        response.status(200).json(savedUser);
+        response.status(201).json(savedUser);
     } catch (err) {
         response.status(500).json(err);
         console.log(err);
@@ -23,33 +23,44 @@ router.post("/register", async (request, response) => {
 });
 
 // LOGIN
+router.post('/login', async (req, res) => {
+    try{
+        const user = await User.findOne(
+            {
+                userName: req.body.user_name
+            }
+        );
 
-router.post("/login", async (request, response) => {
-    try {
-        const user = await User.findOne({ username: request.body.username });
-        !user && response.status(401).json("Wrong Credentials");
+        !user && res.status(401).json("Wrong User Name");
 
-        const hashedPassword = CryptoJS.AES.decrypt(user.password, process.env.PASS_SEC);
+        const hashedPassword = CryptoJS.AES.decrypt(
+            user.password,
+            process.env.PASS_SEC
+        );
+
         const originalPassword = hashedPassword.toString(CryptoJS.enc.Utf8);
 
-        originalPassword !== request.body.password &&
-            response.status(401).json("Wrong Credentials!");
+        const inputPassword = req.body.password;
+        
+        originalPassword != inputPassword && 
+            res.status(401).json("Wrong Password");
 
-        const accessToken = jwt.sign({
+        const accessToken = jwt.sign(
+        {
             id: user._id,
             isAdmin: user.isAdmin,
-        }, 
+        },
         process.env.JWT_SEC,
-        { 
-            expiresIn: "3d"
-        });
-        const { password, ...others } = user._doc;
+            {expiresIn:"3d"}
+        );
+  
+        const { password, ...others } = user._doc;  
+        res.status(200).json({...others, accessToken});
 
-        response.status(200).json({...others, accessToken});
-
-    } catch (err) {
-        response.status(500).json(err);
+    }catch(err){
+        res.status(500).json(err);
     }
-})
+
+});
 
 module.exports = router;
