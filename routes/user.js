@@ -1,6 +1,6 @@
 const CryptoJS = require("crypto-js");
 const User = require("../models/User");
-const { verifyTokenAndAuthorization } = require("./verifyToken");
+const { verifyTokenAndAuthorization, verifyTokenAndAdmin } = require("./verifyToken");
 
 const router = require("express").Router();
 
@@ -23,6 +23,29 @@ router.put("/:id", verifyTokenAndAuthorization, async (request, response) => {
      } catch (err) {
         response.status(500).json(err);
      }
+});
+
+router.delete("/:id", verifyTokenAndAuthorization, async (request, response) => {
+    try {
+        await User.findByIdAndDelete(request.params.id);
+
+        response.status(200).json("User has been deleted");
+    } catch (err) {
+        response.status(500).json(err);
+    }
+});
+
+router.get("/find/:id", verifyTokenAndAdmin, async (request, response) => { 
+    try {
+        const user = await User.findById(request.params.id);
+
+        const { password, ...others } = user._doc;
+
+        response.status(200).json({ others });
+
+    } catch (err) {
+        response.status(500).json(err);
+    }
 });
 
 module.exports = router;
