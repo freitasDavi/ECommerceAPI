@@ -47,5 +47,49 @@ router.get("/find/:id", verifyTokenAndAdmin, async (request, response) => {
         response.status(500).json(err);
     }
 });
+ 
+// Get all USERS 
+router.get("/", verifyTokenAndAdmin, async (request, response) => {
+    const query = request.query.new;
+    try {
+        const users = query 
+            ? await User.find().sort({ _id:-1 }).limit(5) 
+            : await User.find();
 
+        response.status(200).json(users);
+
+    } catch (err) {
+        response.status(500).json(err);
+    }
+});
+
+
+// GET USER STATS
+router.get("/stats", verifyTokenAndAdmin, async (request, response) => {
+    const date = new Date();
+    const lastYear = new Date(date.setFullYear(date.getFullYear() - 1));
+
+    try {
+        const data = await User.aggregate([
+            { $match: { createdAt: { $gte: lastYear } } },
+            {
+                $project: {
+                    month: {$month: "$createdAt" },
+                }
+            },
+            {
+                $group: {
+                    _id: "$month",
+                    total: { $sum: 1},
+                }
+            }
+        ]);
+
+        response.status(200).json(data);
+
+
+    } catch (err) {
+        response.status(500).json(err);
+    }
+})
 module.exports = router;
